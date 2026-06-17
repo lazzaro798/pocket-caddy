@@ -814,6 +814,26 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
 }
 .backup-status.error { color: var(--gold); }
 
+
+/* ── Caddy empty state ──────────────────────────────────── */
+.caddy-empty-headline {
+  font-family: 'Recoleta', serif;
+  font-size: 22px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--ivory);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+.caddy-empty-sub {
+  font-size: 13px;
+  color: var(--green-pale);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
 </style>
 </head>
 <body>
@@ -859,7 +879,14 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
             <div class="caddy-fallback-rec" id="caddy-fallback-rec"></div>
           </div>
 
-          <!-- MODE B: no saved shots — show generic rec -->
+          <!-- MODE B: no saved shots for this distance — stay honest -->
+          <div id="caddy-empty-mode" style="display:none;">
+            <div class="caddy-rec-label">No shots saved yet</div>
+            <div class="caddy-empty-headline">You haven't logged a shot for <span id="empty-mode-dist">147</span> yds yet.</div>
+            <div class="caddy-empty-sub">Tap the button below to save what you'd hit here. The more you log, the smarter your caddy gets.</div>
+          </div>
+
+          <!-- (legacy generic mode kept hidden — may return as an opt-in later) -->
           <div id="caddy-generic-mode" style="display:none;">
             <div class="caddy-rec-label">Recommended club</div>
             <div class="caddy-rec-club" id="rec-club-name">7 Iron</div>
@@ -1309,6 +1336,7 @@ function renderCaddyShotOptions() {
     // MODE A: we have saved shots — lead with them
     shotsMode.style.display   = '';
     genericMode.style.display = 'none';
+    document.getElementById('caddy-empty-mode').style.display = 'none';
 
     document.getElementById('shots-dist-label').textContent = pinDist;
 
@@ -1341,10 +1369,11 @@ function renderCaddyShotOptions() {
       'Baseline: ' + clubLabels[recClub] + ' (' + clubYardages[recClub] + ' yds · ' + diffStr + ')';
 
   } else {
-    // MODE B: no saved shots — show generic recommendation
+    // MODE B: no saved shots for this distance — show honest empty state
     shotsMode.style.display   = 'none';
-    genericMode.style.display = '';
-    renderRec();
+    genericMode.style.display = 'none';
+    document.getElementById('caddy-empty-mode').style.display = '';
+    document.getElementById('empty-mode-dist').textContent = pinDist;
   }
 }
 
