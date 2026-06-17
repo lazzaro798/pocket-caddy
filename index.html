@@ -525,6 +525,19 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
   border-top: 1px solid var(--border);
   min-height: 34px;
 }
+.flight-svg { display: block; width: 100%; height: auto; background: var(--ivory-2); }
+.flight-node { cursor: pointer; }
+.flight-node circle { fill: var(--ivory); stroke: var(--green-mid); stroke-width: 1.5; transition: all .12s; }
+.flight-node text { font-size: 16px; font-weight: 700; fill: var(--green-deep); pointer-events: none; }
+.flight-node path { stroke: var(--green-light); stroke-width: 1.5; fill: none; opacity: .35; transition: opacity .12s; }
+.flight-node.sel circle { fill: var(--gold); stroke: var(--green-deep); }
+.flight-node.sel text   { fill: var(--green-deep); }
+.flight-node.sel path   { stroke: var(--green-deep); opacity: 1; stroke-width: 2.5; }
+.flight-node:active circle { transform: scale(1.06); transform-origin: center; }
+/* Miss-direction cross pad */
+.miss-pad { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+.miss-pad .pill { text-align: center; }
+.miss-pad .pill.mp-blank { visibility: hidden; }
 
 /* ── POCKET CADDY WORDMARK ──────────────────────────────── */
 .caddy-home {
@@ -998,6 +1011,7 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
         <div class="club-override-wrap">
           <div class="field-label" style="margin-bottom:10px;">Override club</div>
           <div class="pill-row club-pill-row" id="caddy-club-picker">
+            <div class="pill" onclick="pickCaddyClub(this,'DR')">DR</div>
             <div class="pill" onclick="pickCaddyClub(this,'3i')">3</div>
             <div class="pill" onclick="pickCaddyClub(this,'4i')">4</div>
             <div class="pill" onclick="pickCaddyClub(this,'5i')">5</div>
@@ -1013,8 +1027,8 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
             <div class="pill" onclick="pickCaddyClub(this,'56')">56</div>
             <div class="pill" onclick="pickCaddyClub(this,'58')">58</div>
             <div class="pill" onclick="pickCaddyClub(this,'60')">60</div>
-            <div class="pill" onclick="pickCaddyClub(this,'H1')">H1</div>
-            <div class="pill" onclick="pickCaddyClub(this,'H2')">H2</div>
+            <div class="pill" onclick="pickCaddyClub(this,'H3')">H3</div>
+            <div class="pill" onclick="pickCaddyClub(this,'H4')">H4</div>
             <div class="pill" onclick="pickCaddyClub(this,'F3')">F3</div>
             <div class="pill" onclick="pickCaddyClub(this,'F5')">F5</div>
           </div>
@@ -1155,6 +1169,7 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
     <div class="modal-field">
       <div class="field-label">Club</div>
       <div class="pill-row club-pill-row" id="modal-club-row">
+        <div class="pill" onclick="pickModalClub(this,'DR')">DR</div>
         <div class="pill" onclick="pickModalClub(this,'3i')">3</div>
         <div class="pill" onclick="pickModalClub(this,'4i')">4</div>
         <div class="pill" onclick="pickModalClub(this,'5i')">5</div>
@@ -1170,8 +1185,8 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
         <div class="pill" onclick="pickModalClub(this,'56')">56</div>
         <div class="pill" onclick="pickModalClub(this,'58')">58</div>
         <div class="pill" onclick="pickModalClub(this,'60')">60</div>
-        <div class="pill" onclick="pickModalClub(this,'H1')">H1</div>
-        <div class="pill" onclick="pickModalClub(this,'H2')">H2</div>
+        <div class="pill" onclick="pickModalClub(this,'H3')">H3</div>
+        <div class="pill" onclick="pickModalClub(this,'H4')">H4</div>
         <div class="pill" onclick="pickModalClub(this,'F3')">F3</div>
         <div class="pill" onclick="pickModalClub(this,'F5')">F5</div>
       </div>
@@ -1219,6 +1234,47 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
       </div>
     </div>
 
+    <!-- ── OUTCOME (scorecard) fields — what actually happened ────────── -->
+    <div class="modal-field" id="of-flight">
+      <div class="field-label">Flight pattern <span class="field-optional">optional</span></div>
+      <div class="flight-picker-wrap">
+        <svg class="flight-svg" viewBox="0 0 320 300" id="flight-svg"></svg>
+        <div class="flight-readout" id="flight-readout">Tap a ball flight</div>
+      </div>
+    </div>
+
+    <div class="modal-field" id="of-miss">
+      <div class="field-label">Miss direction <span class="field-optional">optional</span></div>
+      <div class="miss-pad">
+        <div class="pill mp-blank"></div>
+        <div class="pill" onclick="pickModalField(this,'miss','Long')">Long</div>
+        <div class="pill mp-blank"></div>
+        <div class="pill" onclick="pickModalField(this,'miss','Left')">Left</div>
+        <div class="pill" onclick="pickModalField(this,'miss','')">On Target</div>
+        <div class="pill" onclick="pickModalField(this,'miss','Right')">Right</div>
+        <div class="pill mp-blank"></div>
+        <div class="pill" onclick="pickModalField(this,'miss','Short')">Short</div>
+        <div class="pill mp-blank"></div>
+      </div>
+    </div>
+
+    <div class="modal-field" id="of-solid">
+      <div class="field-label">Contact <span class="field-optional">optional</span></div>
+      <div class="pill-row">
+        <div class="pill" onclick="pickModalField(this,'solid',true)">Solid</div>
+        <div class="pill" onclick="pickModalField(this,'solid',false)">Not Solid</div>
+      </div>
+    </div>
+
+    <div class="modal-field" id="of-dist">
+      <div class="field-label">Distance tendency <span class="field-optional">optional</span></div>
+      <div class="pill-row">
+        <div class="pill" onclick="pickModalField(this,'distTend','Long')">Long</div>
+        <div class="pill" onclick="pickModalField(this,'distTend','Normal')">Normal</div>
+        <div class="pill" onclick="pickModalField(this,'distTend','Short')">Short</div>
+      </div>
+    </div>
+
     <div class="modal-field">
       <div class="field-label">Notes <span class="field-optional">optional</span></div>
       <textarea class="notes-textarea" id="modal-notes" placeholder="e.g. Keep it smooth, finish high..." rows="2"></textarea>
@@ -1234,22 +1290,24 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
 <script>
 // ── CLUB DATA ─────────────────────────────────────────────────────────────
 const clubYardages = {
+  'DR': 250,
   '3i': 196, '4i': 186, '5i': 175, '6i': 163, '7i': 150,
   '8i': 138, '9i': 126, 'PW': 114,
   'GW': 104, '50': 98, '52': 92, '54': 86, '56': 80, '58': 74, '60': 68,
-  'H1': 215, 'H2': 200, 'F3': 230, 'F5': 210
+  'H3': 215, 'H4': 200, 'F3': 230, 'F5': 210
 }
 const clubShots = {
   '3i': 0, '4i': 0, '5i': 0, '6i': 0, '7i': 0,
   '8i': 0, '9i': 0, 'PW': 0,
   'GW': 0, '50': 0, '52': 0, '54': 0, '56': 0, '58': 0, '60': 0,
-  'H1': 0, 'H2': 0, 'F3': 0, 'F5': 0
+  'H3': 0, 'H4': 0, 'F3': 0, 'F5': 0
 }
 const clubLabels = {
+  'DR': 'Driver',
   '3i': '3 Iron', '4i': '4 Iron', '5i': '5 Iron', '6i': '6 Iron', '7i': '7 Iron',
   '8i': '8 Iron', '9i': '9 Iron', 'PW': 'PW',
   'GW': 'GW', '50': '50°', '52': '52°', '54': '54°', '56': '56°', '58': '58°', '60': '60°',
-  'H1': 'Hybrid 1', 'H2': 'Hybrid 2', 'F3': '3 Wood', 'F5': '5 Wood'
+  'H3': 'Hybrid 3', 'H4': 'Hybrid 4', 'F3': '3 Wood', 'F5': '5 Wood'
 }
 const clubMissTendency = {
   // empty — populate as you log shots and patterns emerge
@@ -1257,6 +1315,64 @@ const clubMissTendency = {
 const flightNamesShort = {
   1:'Straight', 2:'Fade', 3:'Draw', 4:'Draw/Hook', 5:'Fade/Slice',
   6:'Pull', 7:'Push', 8:'Hook', 9:'Slice'
+}
+// Full descriptions straight off the paper Flight Pattern Key (1 thru 9)
+const flightNamesLong = {
+  1:'Straight',
+  2:'Starts left – curves right (fade)',
+  3:'Starts right – curves left (draw)',
+  4:'Starts straight – curves left (draw/hook)',
+  5:'Starts straight – curves right (fade/slice)',
+  6:'Starts left – flies straight (pull)',
+  7:'Starts right – flies straight (push)',
+  8:'Starts left – curves left (hook)',
+  9:'Starts right – curves right (slice)'
+}
+// Which scorecard a club belongs to — drives which outcome fields show.
+// driver → distance tendency + fairway; iron → miss + solid; wedge → miss + solid.
+// Hybrids/fairway woods are logged "going for the green" so they use the iron card.
+function clubCategory(club) {
+  if (club === 'DR') return 'driver';
+  if (['GW','50','52','54','56','58','60'].includes(club)) return 'wedge';
+  return 'iron'; // 3i–9i, PW, H1, H2, F3, F5
+}
+
+// ── OUTCOME AGGREGATION ───────────────────────────────────────────────────
+// Given a set of logged shots, summarise the tendencies the paper card totals.
+function summariseOutcomes(shots) {
+  const withFlight = shots.filter(s => s.pattern);
+  const withMiss   = shots.filter(s => s.miss);
+  const withSolid  = shots.filter(s => typeof s.solid === 'boolean');
+  const withDist   = shots.filter(s => s.distTend);
+
+  function topCount(arr, key) {
+    const counts = {};
+    arr.forEach(s => { const v = s[key]; counts[v] = (counts[v]||0)+1; });
+    let best = null, n = 0;
+    for (const k in counts) if (counts[k] > n) { best = k; n = counts[k]; }
+    return best === null ? null : { value: best, n, total: arr.length };
+  }
+
+  return {
+    flight: topCount(withFlight, 'pattern'),   // e.g. {value:'9', n:4, total:6}
+    miss:   topCount(withMiss,   'miss'),      // e.g. {value:'Right', n:3, total:5}
+    dist:   topCount(withDist,   'distTend'),  // e.g. {value:'Short', n:4, total:6}
+    solidPct: withSolid.length
+      ? Math.round(withSolid.filter(s => s.solid).length / withSolid.length * 100)
+      : null,
+    solidTotal: withSolid.length
+  };
+}
+
+// One human-readable tendency line for a club at the current pin distance.
+function tendencyLine(shots) {
+  const o = summariseOutcomes(shots);
+  const parts = [];
+  if (o.miss)   parts.push('misses ' + o.miss.value.toLowerCase() + ' (' + o.miss.n + '/' + o.miss.total + ')');
+  if (o.flight) parts.push((flightNamesShort[o.flight.value] || o.flight.value).toLowerCase());
+  if (o.dist)   parts.push('runs ' + o.dist.value.toLowerCase());
+  if (o.solidPct !== null) parts.push(o.solidPct + '% solid');
+  return parts.length ? parts.join(' · ') : '';
 }
 
 // ── APP STATE ─────────────────────────────────────────────────────────────
@@ -1270,6 +1386,10 @@ let modalSwing   = "12 o'clock";
 let modalBallPos = 'Center';
 let modalWeight  = '50/50';
 let modalFlight  = 'Normal';
+let modalPattern = null;   // flight pattern 1-9 (outcome)
+let modalMiss    = null;   // '', 'Left','Right','Long','Short'
+let modalSolid   = null;   // true / false
+let modalDistTend= null;   // 'Long','Normal','Short'
 
 // Persistent data
 const shotLibrary   = [];
@@ -1439,12 +1559,20 @@ function renderCaddyShotOptions() {
       if (s.flight)  tags.push(s.flight);
       const tagHtml   = tags.map(t => '<span class="csr-tag">' + t + '</span>').join('');
       const notesHtml = s.notes ? '<div class="csr-notes">' + escHtml(s.notes) + '</div>' : '';
+      // Aggregate this club's outcomes across all shots logged near this pin
+      const clubShots = shotLibrary.filter(x =>
+        x.club === s.club && Math.abs(x.distance - pinDist) <= 5);
+      const tend = tendencyLine(clubShots);
+      const tendHtml = tend
+        ? '<div class="csr-notes" style="font-style:normal;color:var(--green-mid);font-weight:700;">↳ ' + escHtml(tend) + '</div>'
+        : '';
       const distHtml  = distNote ? '<span class="csr-dist-note">' + distNote + '</span>' : '';
       return '<div class="caddy-shot-row">' +
         '<span class="csr-club">' + clubLabels[s.club] + '</span>' +
         '<div class="csr-right">' +
           '<span class="csr-swing">' + s.swing + '</span>' +
           '<div class="csr-tags">' + tagHtml + '</div>' +
+          tendHtml +
           notesHtml +
         '</div>' +
         distHtml +
@@ -1487,6 +1615,10 @@ function openAddShot(dist) {
   modalBallPos = 'Center';
   modalWeight  = '50/50';
   modalFlight  = 'Normal';
+  modalPattern = null;
+  modalMiss    = null;
+  modalSolid   = null;
+  modalDistTend= null;
   document.getElementById('modal-dist').textContent = modalDist;
   // Reset all pills in modal
   const modal = document.getElementById('add-shot-modal');
@@ -1504,6 +1636,8 @@ function openAddShot(dist) {
     });
   });
   document.getElementById('modal-notes').value = '';
+  renderFlightPicker();
+  applyClubGating();
   document.getElementById('modal-bg').classList.add('open');
   document.getElementById('add-shot-modal').classList.add('open');
 }
@@ -1522,6 +1656,7 @@ function pickModalClub(el, club) {
   el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
   el.classList.add('selected');
   modalClub = club;
+  applyClubGating();
 }
 
 function pickModalSwing(el, val) {
@@ -1531,15 +1666,76 @@ function pickModalSwing(el, val) {
 }
 
 function pickModalField(el, key, val) {
-  el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+  el.closest('.pill-row, .miss-pad').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
   el.classList.add('selected');
-  if      (key==='ballPos') modalBallPos = val;
-  else if (key==='weight')  modalWeight  = val;
-  else if (key==='flight')  modalFlight  = val;
+  if      (key==='ballPos')  modalBallPos  = val;
+  else if (key==='weight')   modalWeight   = val;
+  else if (key==='flight')   modalFlight   = val;
+  else if (key==='miss')     modalMiss     = val;
+  else if (key==='solid')    modalSolid    = val;
+  else if (key==='distTend') modalDistTend = val;
+}
+
+// Build the tappable 9-flight diagram — paths copied from the paper card's
+// Flight Pattern Key (driver/iron scorecards). Each entry is the full SVG
+// `d` attribute so trajectory shape matches the scorecard, not a generic arc.
+// Origin is (12,150) in a 320x300 viewBox; target direction is +x.
+// 8 and 9 are shaped like extreme 4/5: stay straight, then peel off hard at the end.
+const FLIGHT_PATHS = {
+  // 1 STRAIGHT — horizontal line
+  1: { d: 'M12 150 L308 150',                              end: [308, 150] },
+  // 2 FADE — subtle arc: starts left, gently curves back near straight
+  2: { d: 'M12 150 C 100 125, 210 115, 290 118',           end: [290, 118] },
+  // 3 DRAW — mirror of 2
+  3: { d: 'M12 150 C 100 175, 210 185, 290 182',           end: [290, 182] },
+  // 4 DRAW/HOOK — straight, then bends UP at the end
+  4: { d: 'M12 150 C 130 150, 220 143, 280 85',            end: [280, 85]  },
+  // 5 FADE/SLICE — straight, then bends DOWN at the end
+  5: { d: 'M12 150 C 130 150, 220 157, 280 215',           end: [280, 215] },
+  // 6 PULL — straight diagonal up
+  6: { d: 'M12 150 L260 50',                               end: [260, 50]  },
+  // 7 PUSH — straight diagonal down
+  7: { d: 'M12 150 L260 250',                              end: [260, 250] },
+  // 8 HOOK — flies straight longer than 4, then trails off hard up at the end
+  8: { d: 'M12 150 C 170 150, 240 135, 278 18',            end: [278, 18]  },
+  // 9 SLICE — mirror of 8
+  9: { d: 'M12 150 C 170 150, 240 165, 278 282',           end: [278, 282] }
+};
+function renderFlightPicker() {
+  const ox = 12, oy = 150;
+  // Small anchor dot at origin so trajectories visibly emanate from one point.
+  let svg = '<circle cx="' + ox + '" cy="' + oy + '" r="3" fill="#1B3A2D"/>';
+  for (let i = 1; i <= 9; i++) {
+    const p = FLIGHT_PATHS[i];
+    const sel = (modalPattern === i) ? ' sel' : '';
+    svg +=
+      '<g class="flight-node' + sel + '" onclick="pickFlight(' + i + ')">' +
+        '<path d="' + p.d + '"/>' +
+        '<circle cx="' + p.end[0] + '" cy="' + p.end[1] + '" r="14"/>' +
+        '<text x="' + p.end[0] + '" y="' + (p.end[1] + 5) + '" text-anchor="middle">' + i + '</text>' +
+      '</g>';
+  }
+  document.getElementById('flight-svg').innerHTML = svg;
+  document.getElementById('flight-readout').textContent =
+    modalPattern ? (modalPattern + '. ' + flightNamesLong[modalPattern]) : 'Tap a ball flight';
+}
+function pickFlight(n) {
+  modalPattern = (modalPattern === n) ? null : n;
+  renderFlightPicker();
+}
+
+// Show only the outcome fields that belong to the selected club's scorecard.
+function applyClubGating() {
+  const cat = clubCategory(modalClub);
+  document.getElementById('of-flight').style.display = '';                       // all cards
+  document.getElementById('of-miss').style.display   = cat === 'driver' ? 'none' : '';
+  document.getElementById('of-solid').style.display  = cat === 'driver' ? 'none' : '';
+  document.getElementById('of-dist').style.display   = cat === 'driver' ? '' : 'none';
 }
 
 function saveShot() {
-  shotLibrary.push({
+  const cat = clubCategory(modalClub);
+  const shot = {
     id: Date.now(),
     distance: modalDist,
     club: modalClub,
@@ -1548,7 +1744,16 @@ function saveShot() {
     weight: modalWeight,
     flight: modalFlight,
     notes: document.getElementById('modal-notes').value.trim()
-  });
+  };
+  // Outcome fields, gated by which scorecard the club uses
+  if (modalPattern) shot.pattern = modalPattern;
+  if (cat === 'driver') {
+    if (modalDistTend) shot.distTend = modalDistTend;
+  } else {
+    if (modalMiss !== null)  shot.miss  = modalMiss;   // '' means "hit / no miss"
+    if (modalSolid !== null) shot.solid = modalSolid;
+  }
+  shotLibrary.push(shot);
   saveToStorage();
   closeAddShot();
   renderShotsList();
