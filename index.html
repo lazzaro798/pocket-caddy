@@ -834,6 +834,51 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
   font-weight: 500;
 }
 
+
+
+/* ── Clear all shots (page-level) ───────────────────────── */
+.clear-all-shots-btn {
+  width: 100%;
+  margin-top: 20px;
+  background: var(--white);
+  border: 1.5px solid #B0746B;
+  color: #8A4A40;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.clear-all-shots-btn:active {
+  background: #F5E3DF;
+}
+
+/* ── Per-distance header w/ clear button ────────────────── */
+.shots-distance-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+.clear-dist-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  font-family: 'General Sans', sans-serif;
+  font-style: normal;
+}
+.clear-dist-btn:active { color: #8A4A40; }
+
 </style>
 </head>
 <body>
@@ -963,8 +1008,17 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
         Add a shot
       </button>
       <div id="shots-list">
-        <div class="shots-empty">No shots saved yet. Add one above, or save shots on the fly from the Caddy or Range screens.</div>
+        <div class="shots-empty">No shots saved yet. Tap "Add a shot" above to start your library.</div>
       </div>
+      <button class="clear-all-shots-btn" id="clear-all-shots-btn" onclick="clearAllShots()" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+        </svg>
+        Clear all shots
+      </button>
     </div>
   </div>
 
@@ -1473,12 +1527,38 @@ function deleteShot(id) {
   renderCaddyShotOptions();
 }
 
+function clearShotsForDistance(dist) {
+  const count = shotLibrary.filter(s => s.distance === dist).length;
+  if (!count) return;
+  if (!confirm('Delete all ' + count + ' shot' + (count === 1 ? '' : 's') + ' saved for ' + dist + ' yds?')) return;
+  for (let i = shotLibrary.length - 1; i >= 0; i--) {
+    if (shotLibrary[i].distance === dist) shotLibrary.splice(i, 1);
+  }
+  saveToStorage();
+  renderShotsList();
+  renderCaddyShotOptions();
+}
+
+function clearAllShots() {
+  const count = shotLibrary.length;
+  if (!count) return;
+  if (!confirm('Delete ALL ' + count + ' shot' + (count === 1 ? '' : 's') + ' from your library? This cannot be undone — export a backup first if you might want them back.')) return;
+  shotLibrary.length = 0;
+  saveToStorage();
+  renderShotsList();
+  renderCaddyShotOptions();
+}
+
+
 function renderShotsList() {
   const list = document.getElementById('shots-list');
+  const clearAllBtn = document.getElementById('clear-all-shots-btn');
   if (!shotLibrary.length) {
-    list.innerHTML = '<div class="shots-empty">No shots saved yet. Add one above, or save shots on the fly from the Caddy or Range screens.</div>';
+    list.innerHTML = '<div class="shots-empty">No shots saved yet. Tap "Add a shot" above to start your library.</div>';
+    if (clearAllBtn) clearAllBtn.style.display = 'none';
     return;
   }
+  if (clearAllBtn) clearAllBtn.style.display = '';
   const groups = {};
   shotLibrary.forEach(s => { if (!groups[s.distance]) groups[s.distance]=[]; groups[s.distance].push(s); });
   const dists = Object.keys(groups).map(Number).sort((a,b) => b-a);
@@ -1503,7 +1583,10 @@ function renderShotsList() {
         '<button class="shot-option-delete" onclick="deleteShot(' + s.id + ')">×</button>' +
       '</div>';
     }).join('');
-    wrap.innerHTML = '<div class="shots-distance-header">' + dist + ' <span>yds</span></div>' + rows;
+    wrap.innerHTML = '<div class="shots-distance-header">' +
+        '<span>' + dist + ' <span>yds</span></span>' +
+        '<button class="clear-dist-btn" onclick="clearShotsForDistance(' + dist + ')">Clear</button>' +
+      '</div>' + rows;
     list.appendChild(wrap);
   });
 }
