@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Pocket Caddy</title>
+<link href="https://api.fontshare.com/v2/css?f[]=recoleta@400,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet"/>
+<!-- iOS Add-to-Home-Screen support -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Pocket Caddy"/>
+<meta name="theme-color" content="#1B3A2D"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: #0D1F16; }
+
+:root {
+  --green-deep:   #1B3A2D;   /* darkest — headers, tab active */
+  --green-mid:    #2D5A40;   /* primary green */
+  --green-light:  #3D7A56;   /* lighter green */
+  --green-pale:   #C8DDD0;   /* very pale green tint */
+  --ivory:        #F8F4EC;   /* main background */
+  --ivory-2:      #EDE8DC;   /* card surfaces */
+  --ivory-3:      #E0D9C8;   /* borders, dividers */
+  --gold:         #C9A84C;   /* accent — confidence pills, highlights */
+  --gold-light:   #E8C96A;   /* lighter gold */
+  --text:         #1B2E23;
+  --text-mid:     #4A6358;
+  --text-dim:     #8A9E94;
+  --border:       #D4CDB8;
+  --white:        #FFFFFF;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────── */
+#app {
+  width: 100%; max-width: 430px;
+  height: 100%; margin: 0 auto;
+  display: flex; flex-direction: column;
+  background: var(--ivory); position: relative; overflow: hidden;
+}
+
+.screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.screen.active { display: flex; }
+
+.page-body {
+  flex: 1; overflow-y: auto; padding: 18px 18px 100px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── TAB BAR ─────────────────────────────────────────── */
+.tab-bar {
+  display: flex; background: white;
+  border-top: 1px solid var(--border);
+  padding: 8px 0 20px;
+  position: absolute; bottom: 0; left: 0; right: 0;
+  z-index: 10;
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  background: none; border: none;
+  font-family: 'General Sans', sans-serif;
+  font-size: 10px; font-weight: 700;
+  color: var(--text-dim); cursor: pointer;
+  padding: 6px 0; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tab-item.active { color: var(--green-deep); }
+.tab-item svg { width: 22px; height: 22px; }
+
+/* ── PAGE BAR ─────────────────────────────────────────── */
+.page-bar {
+  background: var(--green-deep);
+  padding: 24px 22px 30px;
+  position: relative; flex-shrink: 0;
+}
+.page-title {
+  font-family: 'Recoleta', serif;
+  font-size: 38px; font-weight: 700;
+  color: var(--ivory); letter-spacing: -0.04em;
+  font-style: italic; line-height: 1;
+}
+.page-sub {
+  font-size: 12px; color: var(--green-pale);
+  font-weight: 600; margin-top: 4px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.header-logo-corner {
+  position: absolute; top: 18px; right: 18px;
+  width: 36px; height: 36px; object-fit: contain;
+}
+
+/* ── CARDS ─────────────────────────────────────────── */
+.card {
+  background: white; border-radius: 18px;
+  border: 0.5px solid var(--border);
+  box-shadow: 0 2px 10px rgba(60,40,15,0.06);
+  overflow: hidden; margin-bottom: 14px;
+}
+.card-header {
+  background: var(--ivory); padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--text-dim);
+  font-weight: 700;
+}
+.card-body { padding: 16px; }
+
+/* ── PILLS ─────────────────────────────────────────── */
+.pill-row {
+  display: flex; flex-wrap: wrap; gap: 7px;
+}
+.pill {
+  padding: 9px 14px; border-radius: 10px;
+  background: var(--ivory); border: 1.5px solid var(--border);
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text-mid); cursor: pointer;
+  transition: all 0.1s;
+}
+.pill.selected {
+  background: var(--green-deep); border-color: var(--green-deep);
+  color: white;
+}
+.club-pill-row .pill { padding: 9px 11px; font-size: 13px; }
+
+/* ── STEP BUTTONS ─────────────────────────────────── */
+.pin-step-btn {
+  background: var(--ivory-2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: var(--green-deep); cursor: pointer;
+}
+.pin-step-btn:active { background: var(--ivory-3); }
+
+/* ── CONTINUE / SAVE BUTTONS ──────────────────────── */
+.cta-btn {
+  width: 100%; background: var(--green-deep);
+  color: var(--ivory); border: none;
+  padding: 15px; border-radius: 14px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  gap: 8px; margin-top: 10px;
+  box-shadow: 0 6px 16px rgba(60,40,15,0.18);
+}
+.cta-btn:active { transform: scale(0.99); }
+.cta-btn.secondary {
+  background: var(--ivory); color: var(--green-deep);
+  border: 1.5px solid var(--border);
+  box-shadow: none;
+}
+
+/* ── INPUTS & TEXTAREAS ───────────────────────────── */
+.text-input {
+  width: 100%; background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 14px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 14px; color: var(--text);
+}
+.text-input::placeholder { color: var(--text-dim); font-style: italic; }
+.text-input:focus { outline: none; border-color: var(--green-mid); background: white; }
+
+.notes-textarea {
+  width: 100%; min-height: 80px;
+  background: var(--ivory); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 14px; color: var(--text);
+  resize: vertical; line-height: 1.5;
+}
+.notes-textarea::placeholder { color: var(--text-dim); font-style: italic; }
+.notes-textarea:focus { outline: none; border-color: var(--green-mid); background: white; }
+
+/* ── FIELD LABEL ──────────────────────────────────── */
+.field-label {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--text-dim);
+  font-weight: 700; margin-bottom: 8px;
+}
+.field-optional {
+  text-transform: none; letter-spacing: 0;
+  font-size: 10px; color: var(--text-dim);
+  font-weight: 600; font-style: italic;
+}
+
+/* ────────────────────────────────────────────────────
+   SCREEN 1: CADDY
+   ──────────────────────────────────────────────────── */
+.caddy-home {
+  background: linear-gradient(180deg, var(--green-deep) 0%, #5a2e10 100%);
+  flex-shrink: 0; padding: 32px 22px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.caddy-logo { width: 72px; height: 72px; object-fit: contain; }
+.caddy-wordmark { width: 220px; }
+
+.caddy-body {
+  flex: 1; overflow-y: auto; padding: 22px 18px 100px;
+  background: var(--ivory);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Distance entry */
+.distance-entry {
+  text-align: center; margin-bottom: 20px;
+}
+.distance-label {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.18em; color: var(--text-dim);
+  font-weight: 700; margin-bottom: 10px;
+}
+.distance-display {
+  font-family: 'Recoleta', serif;
+  font-size: 96px; font-weight: 700;
+  font-style: italic; color: var(--green-deep);
+  letter-spacing: -0.06em; line-height: 1;
+  margin-bottom: 10px;
+}
+.distance-display .dist-unit {
+  font-size: 20px; color: var(--text-dim);
+  letter-spacing: 0.1em; font-style: normal;
+  font-family: 'General Sans', sans-serif;
+  font-weight: 700; text-transform: uppercase;
+  vertical-align: middle; margin-left: 4px;
+}
+.distance-steppers {
+  display: flex; gap: 8px; justify-content: center;
+  margin-bottom: 16px;
+}
+
+/* Caddy recommendation card */
+.caddy-rec-card {
+  background: linear-gradient(135deg, var(--gold-light) 0%, #E8C96A 100%);
+  border-radius: 20px; padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(245,193,64,0.3);
+}
+.caddy-rec-label {
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.18em; color: var(--green-light);
+  font-weight: 700; margin-bottom: 8px;
+}
+.caddy-rec-club {
+  font-family: 'Recoleta', serif;
+  font-size: 42px; font-weight: 700;
+  font-style: italic; color: var(--green-deep);
+  letter-spacing: -0.04em; line-height: 1;
+}
+.caddy-rec-detail {
+  font-size: 13px; color: var(--green-light);
+  font-weight: 600; margin-top: 4px;
+}
+.caddy-conf-pill {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 999px; font-size: 11px;
+  font-weight: 700; margin-top: 8px;
+  background: rgba(255,255,255,0.5);
+  color: var(--green-deep);
+}
+.caddy-warning {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px; padding: 8px 10px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 10px; font-size: 12px;
+  font-weight: 700; color: var(--green-light);
+}
+
+/* Shot options on caddy card */
+.caddy-shot-options {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 10px;
+}
+.caddy-shot-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; font-weight: 700;
+  color: var(--green-deep);
+}
+.chip-club { font-family: 'Recoleta', serif; font-style: italic; font-size: 15px; }
+.chip-swing { color: var(--green-deep); }
+.chip-extra { font-size: 10px; color: var(--green-light); text-transform: uppercase; letter-spacing: 0.08em; margin-left: auto; }
+.caddy-add-shot-btn {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; width: 100%;
+  background: rgba(255,255,255,0.4);
+  border: 1px dashed var(--green-mid);
+  border-radius: 10px; padding: 9px;
+  margin-top: 8px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 12px; font-weight: 700;
+  color: var(--green-light); cursor: pointer;
+}
+
+/* Club override picker on caddy screen */
+.club-override-wrap { margin-bottom: 14px; }
+
+/* ────────────────────────────────────────────────────
+   SCREEN 2: MY SHOTS
+   ──────────────────────────────────────────────────── */
+.shots-add-main-btn {
+  width: 100%; background: var(--green-deep);
+  color: var(--ivory); border: none;
+  padding: 14px; border-radius: 14px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 16px;
+  box-shadow: 0 6px 16px rgba(60,40,15,0.18);
+}
+.shots-add-main-btn:active { transform: scale(0.99); }
+
+.shots-empty {
+  text-align: center; font-size: 13px;
+  color: var(--text-dim); font-style: italic;
+  padding: 32px 16px; line-height: 1.7;
+}
+
+.shots-distance-group {
+  background: white; border-radius: 16px;
+  border: 0.5px solid var(--border);
+  overflow: hidden; margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(60,40,15,0.05);
+}
+.shots-distance-header {
+  background: var(--ivory); padding: 10px 16px;
+  font-family: 'Recoleta', serif;
+  font-size: 20px; font-weight: 700;
+  font-style: italic; color: var(--green-deep);
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--border);
+}
+.shots-distance-header span {
+  font-size: 12px; color: var(--text-dim);
+  font-style: normal; font-family: 'General Sans', sans-serif;
+}
+.shot-option {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ivory-2);
+  gap: 10px;
+}
+.shot-option:last-child { border-bottom: none; }
+.shot-option-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.shot-option-club {
+  font-family: 'Recoleta', serif;
+  font-size: 18px; font-weight: 700;
+  font-style: italic; color: var(--text);
+  min-width: 52px;
+}
+.shot-option-swing { font-size: 13px; font-weight: 700; color: var(--green-deep); }
+.shot-option-tag {
+  font-size: 11px; color: var(--text-dim);
+  background: var(--ivory-2); padding: 2px 8px;
+  border-radius: 6px; font-weight: 600;
+}
+.shot-option-delete {
+  background: none; border: none;
+  color: var(--text-dim); cursor: pointer;
+  font-size: 20px; line-height: 1;
+  flex-shrink: 0; padding: 2px 4px;
+}
+.shot-option-delete:active { color: #2D5A40; }
+
+/* ────────────────────────────────────────────────────
+   SCREEN 3: RANGE
+   ──────────────────────────────────────────────────── */
+
+/* ────────────────────────────────────────────────────
+   SCREEN 4: THOUGHTS
+   ──────────────────────────────────────────────────── */
+.thoughts-group {
+  background: white; border-radius: 16px;
+  border: 0.5px solid var(--border);
+  padding: 16px; margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(60,40,15,0.05);
+}
+.thoughts-group-header {
+  font-family: 'Recoleta', serif;
+  font-size: 20px; font-weight: 700;
+  font-style: italic; color: var(--green-deep);
+  letter-spacing: -0.02em; margin-bottom: 12px;
+}
+.thoughts-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.thoughts-list:empty { margin-bottom: 0; }
+.thought-bullet {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; background: var(--ivory);
+  border-radius: 10px;
+}
+.thought-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green-mid); margin-top: 7px; flex-shrink: 0;
+}
+.thought-text {
+  flex: 1; font-size: 14px; color: var(--text);
+  font-weight: 500; line-height: 1.4;
+}
+.thought-delete {
+  background: none; border: none;
+  color: var(--text-dim); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 0 2px;
+}
+.thought-delete:active { color: #2D5A40; }
+.thoughts-add-row { display: flex; gap: 8px; }
+.thoughts-input {
+  flex: 1; background: var(--ivory);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 14px; color: var(--text);
+}
+.thoughts-input::placeholder { color: var(--text-dim); font-style: italic; }
+.thoughts-input:focus { outline: none; border-color: var(--green-mid); background: white; }
+.thoughts-add-btn {
+  background: var(--green-deep); color: var(--ivory);
+  border: none; border-radius: 10px;
+  padding: 0 18px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.thoughts-add-btn:active { transform: scale(0.97); }
+
+/* Context callout used on Caddy screen */
+.context-thoughts-callout {
+  background: linear-gradient(135deg, #EDE8DC 0%, #E0D9C8 100%);
+  border: 1px solid var(--green-pale);
+  border-radius: 14px; padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.context-thoughts-hdr {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--green-deep);
+  font-weight: 700; margin-bottom: 8px;
+}
+.context-thought-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px; color: var(--green-light);
+  font-weight: 600; line-height: 1.4; margin-bottom: 4px;
+}
+.context-thought-item:last-child { margin-bottom: 0; }
+.ct-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green-mid); margin-top: 6px; flex-shrink: 0;
+}
+
+/* ────────────────────────────────────────────────────
+   ADD SHOT MODAL (shared between Caddy, My Shots, Range)
+   ──────────────────────────────────────────────────── */
+.modal-bg {
+  position: absolute; inset: 0;
+  background: rgba(60,40,15,0.45);
+  z-index: 90; display: none;
+}
+.modal-bg.open { display: block; }
+.modal {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--ivory);
+  border-radius: 24px 24px 0 0;
+  padding: 8px 20px 32px;
+  z-index: 91;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.32,0.72,0,1);
+  max-height: 92%; overflow-y: auto;
+}
+.modal.open { transform: translateY(0); }
+.modal-grabber {
+  width: 36px; height: 4px;
+  background: var(--border); border-radius: 999px;
+  margin: 8px auto 16px;
+}
+.modal-title {
+  font-family: 'Recoleta', serif;
+  font-size: 26px; font-weight: 700;
+  font-style: italic; color: var(--text);
+  letter-spacing: -0.02em; margin-bottom: 4px;
+}
+.modal-sub {
+  font-size: 13px; color: var(--text-dim); margin-bottom: 20px;
+}
+.modal-field { margin-bottom: 18px; }
+
+.shot-distance-row {
+  display: flex; align-items: center;
+  gap: 8px; justify-content: space-between;
+}
+.shot-distance-display {
+  flex: 1; text-align: center;
+  font-family: 'Recoleta', serif;
+  font-size: 42px; font-weight: 700;
+  font-style: italic; color: var(--green-deep);
+  letter-spacing: -0.04em;
+  display: flex; align-items: baseline;
+  justify-content: center; gap: 6px;
+}
+.shot-distance-unit {
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.14em; font-style: normal;
+}
+.swing-clock-note {
+  font-size: 11px; color: var(--text-dim);
+  font-style: italic; margin-top: 6px;
+}
+
+/* ── FLIGHT PATTERN PICKER ────────────────────────── */
+.flight-picker-wrap {
+  background: var(--ivory);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.flight-readout {
+  padding: 8px 14px;
+  font-size: 12px; font-weight: 700;
+  color: var(--green-deep); background: var(--ivory);
+  border-top: 1px solid var(--border);
+  min-height: 34px;
+}
+
+/* ── POCKET CADDY WORDMARK ──────────────────────────────── */
+.caddy-home {
+  background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-mid) 100%) !important;
+  padding: 36px 22px 32px !important;
+  align-items: flex-start !important;
+}
+.pc-wordmark {
+  font-family: 'Recoleta', serif;
+  font-size: 48px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--ivory);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.pc-tagline {
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-pale);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* ── PAGE BAR refresh for green ─────────────────────────── */
+.page-bar {
+  background: var(--green-deep) !important;
+}
+
+/* ── TAB BAR active color ───────────────────────────────── */
+.tab-item.active { color: var(--green-mid) !important; }
+
+/* ── CTA button ─────────────────────────────────────────── */
+.cta-btn {
+  background: var(--green-mid) !important;
+  color: var(--ivory) !important;
+}
+.cta-btn.secondary {
+  background: var(--ivory) !important;
+  color: var(--green-deep) !important;
+  border-color: var(--border) !important;
+}
+
+/* ── Rec card ───────────────────────────────────────────── */
+.caddy-rec-card {
+  background: linear-gradient(135deg, var(--green-mid) 0%, var(--green-deep) 100%) !important;
+  box-shadow: 0 8px 24px rgba(27,58,45,0.28) !important;
+}
+.caddy-rec-label  { color: var(--green-pale) !important; }
+.caddy-rec-club   { color: var(--ivory) !important; }
+.caddy-rec-detail { color: var(--green-pale) !important; }
+.caddy-conf-pill  {
+  background: rgba(255,255,255,0.18) !important;
+  color: var(--ivory) !important;
+}
+.caddy-warning {
+  background: rgba(0,0,0,0.18) !important;
+  color: var(--ivory) !important;
+}
+.caddy-shot-chip {
+  background: rgba(255,255,255,0.15) !important;
+  color: var(--ivory) !important;
+}
+.chip-club  { color: var(--gold-light) !important; }
+.chip-swing { color: var(--green-pale) !important; }
+.caddy-add-shot-btn {
+  border-color: var(--green-pale) !important;
+  color: var(--green-pale) !important;
+  background: rgba(255,255,255,0.1) !important;
+}
+
+/* ── My Shots add btn ───────────────────────────────────── */
+.shots-add-main-btn {
+  background: var(--green-mid) !important;
+  color: var(--ivory) !important;
+}
+
+/* ── Range save btn ─────────────────────────────────────── */
+
+/* ── Thoughts add btn ───────────────────────────────────── */
+.thoughts-add-btn {
+  background: var(--green-mid) !important;
+}
+
+/* ── Modal ──────────────────────────────────────────────── */
+.modal-bg { background: rgba(13,31,22,0.55) !important; }
+
+/* ── Pill selected ──────────────────────────────────────── */
+.pill.selected {
+  background: var(--green-mid) !important;
+  border-color: var(--green-mid) !important;
+  color: var(--ivory) !important;
+}
+
+/* ── Range solid tag ────────────────────────────────────── */
+
+/* ── Thought dot / shot dot ─────────────────────────────── */
+.thought-dot { background: var(--green-mid) !important; }
+.ct-dot      { background: var(--green-mid) !important; }
+
+/* ── Context callout ────────────────────────────────────── */
+.context-thoughts-callout {
+  background: linear-gradient(135deg, var(--green-pale) 0%, var(--ivory-2) 100%) !important;
+  border-color: var(--green-pale) !important;
+}
+.context-thoughts-hdr { color: var(--green-deep) !important; }
+.context-thought-item { color: var(--green-light) !important; }
+
+/* ── Caddy shot list (Mode A) ───────────────────────────── */
+.caddy-shot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.caddy-shot-row {
+  background: rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.csr-club {
+  font-family: 'Recoleta', serif;
+  font-size: 24px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--gold-light);
+  letter-spacing: -0.02em;
+  min-width: 52px;
+}
+
+.csr-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.csr-swing {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+
+.csr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.csr-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-pale);
+  background: rgba(0,0,0,0.18);
+  padding: 2px 7px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.csr-dist-note {
+  font-size: 10px;
+  color: var(--green-pale);
+  font-weight: 600;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.csr-notes {
+  font-size: 12px;
+  color: var(--green-pale);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* Fallback rec shown small in Mode A */
+.caddy-fallback-rec {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ── Thoughts category header w/ delete ─────────────────── */
+.thoughts-group-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.thoughts-group-header {
+  margin-bottom: 0 !important;
+}
+.category-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+.category-delete-btn:active { color: var(--gold); }
+.category-builtin-pill {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  background: var(--ivory-2);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* ── Add category footer card ───────────────────────────── */
+.add-category-card {
+  background: var(--ivory-2);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 4px;
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════════════════════════════════════
+       SCREEN 1 · CADDY
+  ════════════════════════════════════════ -->
+  <div class="screen active" id="screen-caddy">
+    <div class="caddy-home">
+    </div>
+    <div class="caddy-body">
+
+      <!-- Step 1: Distance entry -->
+      <div id="caddy-step-1">
+        <div class="distance-entry">
+          <div class="distance-label">How far to the pin?</div>
+          <div class="distance-display"><span id="caddy-distance">147</span><span class="dist-unit">yds</span></div>
+          <div class="distance-steppers">
+            <button class="pin-step-btn" onclick="adjustDist(-10)">−10</button>
+            <button class="pin-step-btn" onclick="adjustDist(-5)">−5</button>
+            <button class="pin-step-btn" onclick="adjustDist(-1)">−1</button>
+            <button class="pin-step-btn" onclick="adjustDist(1)">+1</button>
+            <button class="pin-step-btn" onclick="adjustDist(5)">+5</button>
+            <button class="pin-step-btn" onclick="adjustDist(10)">+10</button>
+          </div>
+          <button class="cta-btn" onclick="confirmDist()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F8F4EC" stroke-width="2.4" stroke-linecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+            Get recommendation
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Recommendation -->
+      <div id="caddy-step-2" style="display:none;">
+        <div class="caddy-rec-card" id="caddy-rec-card">
+
+          <!-- MODE A: saved shots exist for this distance -->
+          <div id="caddy-shots-mode" style="display:none;">
+            <div class="caddy-rec-label">Your shots for <span id="shots-dist-label">150</span> yds</div>
+            <div class="caddy-shot-list" id="caddy-shot-list"></div>
+            <!-- fallback rec shown small underneath -->
+            <div class="caddy-fallback-rec" id="caddy-fallback-rec"></div>
+          </div>
+
+          <!-- MODE B: no saved shots — show generic rec -->
+          <div id="caddy-generic-mode" style="display:none;">
+            <div class="caddy-rec-label">Recommended club</div>
+            <div class="caddy-rec-club" id="rec-club-name">7 Iron</div>
+            <div class="caddy-rec-detail" id="rec-club-detail">Typical carry: 150 yds · 3 over</div>
+            <div class="caddy-conf-pill" id="rec-conf-pill">Good confidence</div>
+            <div class="caddy-warning" id="rec-warning" style="display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D7A56" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="rec-warning-text"></span>
+            </div>
+          </div>
+
+          <button class="caddy-add-shot-btn" onclick="openAddShot(pinDist)" style="margin-top:12px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D7A56" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Save a shot for <span id="caddy-add-dist-label">147</span> yds
+          </button>
+        </div>
+
+        <!-- Overall swing thoughts on caddy screen -->
+        <div class="context-thoughts-callout" id="caddy-overall-thoughts" style="display:none;">
+          <div class="context-thoughts-hdr">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2D5A40" stroke-width="2.4" stroke-linecap="round"><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+            Swing thoughts
+          </div>
+          <div id="caddy-overall-list"></div>
+        </div>
+
+        <!-- Club override -->
+        <div class="club-override-wrap">
+          <div class="field-label" style="margin-bottom:10px;">Override club</div>
+          <div class="pill-row club-pill-row" id="caddy-club-picker">
+            <div class="pill" onclick="pickCaddyClub(this,'3i')">3</div>
+            <div class="pill" onclick="pickCaddyClub(this,'4i')">4</div>
+            <div class="pill" onclick="pickCaddyClub(this,'5i')">5</div>
+            <div class="pill" onclick="pickCaddyClub(this,'6i')">6</div>
+            <div class="pill" onclick="pickCaddyClub(this,'7i')">7</div>
+            <div class="pill" onclick="pickCaddyClub(this,'8i')">8</div>
+            <div class="pill" onclick="pickCaddyClub(this,'9i')">9</div>
+            <div class="pill" onclick="pickCaddyClub(this,'PW')">PW</div>
+            <div class="pill" onclick="pickCaddyClub(this,'GW')">GW</div>
+            <div class="pill" onclick="pickCaddyClub(this,'50')">50</div>
+            <div class="pill" onclick="pickCaddyClub(this,'52')">52</div>
+            <div class="pill" onclick="pickCaddyClub(this,'54')">54</div>
+            <div class="pill" onclick="pickCaddyClub(this,'56')">56</div>
+            <div class="pill" onclick="pickCaddyClub(this,'58')">58</div>
+            <div class="pill" onclick="pickCaddyClub(this,'60')">60</div>
+            <div class="pill" onclick="pickCaddyClub(this,'H1')">H1</div>
+            <div class="pill" onclick="pickCaddyClub(this,'H2')">H2</div>
+            <div class="pill" onclick="pickCaddyClub(this,'F3')">F3</div>
+            <div class="pill" onclick="pickCaddyClub(this,'F5')">F5</div>
+          </div>
+          <div class="caddy-rec-detail" id="override-yardage-note" style="margin-top:8px;"></div>
+        </div>
+
+        <button class="cta-btn secondary" onclick="resetCaddy()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2D5A40" stroke-width="2.2" stroke-linecap="round"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.84"/></svg>
+          New distance
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 2 · MY SHOTS
+  ════════════════════════════════════════ -->
+  <div class="screen" id="screen-shots">
+    <div class="page-bar">
+      <div class="page-title">My Shots</div>
+      <div class="page-sub">Your club options by distance</div>
+    </div>
+    <div class="page-body">
+      <button class="shots-add-main-btn" onclick="openAddShot(150)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F8F4EC" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add a shot
+      </button>
+      <div id="shots-list">
+        <div class="shots-empty">No shots saved yet. Add one above, or save shots on the fly from the Caddy or Range screens.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       SCREEN 4 · THOUGHTS
+  ════════════════════════════════════════ -->
+  <div class="screen" id="screen-thoughts">
+    <div class="page-bar">
+      <div class="page-title">Thoughts</div>
+      <div class="page-sub">Your mental cues & checklists</div>
+    </div>
+    <div class="page-body">
+      <div id="thoughts-screen-list"></div>
+
+      <!-- Add a new custom category -->
+      <div class="add-category-card">
+        <div class="field-label">Add a new category</div>
+        <div class="thoughts-add-row">
+          <input class="thoughts-input" id="new-category-input" placeholder="e.g. Bunker shots, Chipping..." onkeydown="if(event.key==='Enter')addCategory()"/>
+          <button class="thoughts-add-btn" onclick="addCategory()">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       TAB BAR
+  ════════════════════════════════════════ -->
+  <div class="tab-bar">
+    <button class="tab-item active" id="tab-caddy" onclick="showTab('screen-caddy','tab-caddy')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+      </svg>
+      Caddy
+    </button>
+    <button class="tab-item" id="tab-shots" onclick="showTab('screen-shots','tab-shots')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M3 3v18h18"/><path d="m7 14 3-3 3 3 5-5"/>
+      </svg>
+      My Shots
+    </button>
+
+    <button class="tab-item" id="tab-thoughts" onclick="showTab('screen-thoughts','tab-thoughts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M9 18h6"/><path d="M10 22h4"/>
+        <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+      </svg>
+      Thoughts
+    </button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       ADD SHOT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-bg" id="modal-bg" onclick="closeAddShot()"></div>
+  <div class="modal" id="add-shot-modal">
+    <div class="modal-grabber"></div>
+    <div class="modal-title">Add a shot</div>
+    <div class="modal-sub">Record a club + recipe for a specific distance.</div>
+
+    <div class="modal-field">
+      <div class="field-label">Distance</div>
+      <div class="shot-distance-row">
+        <button class="pin-step-btn" onclick="adjustModalDist(-5)">−5</button>
+        <button class="pin-step-btn" onclick="adjustModalDist(-1)">−1</button>
+        <div class="shot-distance-display"><span id="modal-dist">150</span><span class="shot-distance-unit">yds</span></div>
+        <button class="pin-step-btn" onclick="adjustModalDist(1)">+1</button>
+        <button class="pin-step-btn" onclick="adjustModalDist(5)">+5</button>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Club</div>
+      <div class="pill-row club-pill-row" id="modal-club-row">
+        <div class="pill" onclick="pickModalClub(this,'3i')">3</div>
+        <div class="pill" onclick="pickModalClub(this,'4i')">4</div>
+        <div class="pill" onclick="pickModalClub(this,'5i')">5</div>
+        <div class="pill" onclick="pickModalClub(this,'6i')">6</div>
+        <div class="pill selected" onclick="pickModalClub(this,'7i')">7</div>
+        <div class="pill" onclick="pickModalClub(this,'8i')">8</div>
+        <div class="pill" onclick="pickModalClub(this,'9i')">9</div>
+        <div class="pill" onclick="pickModalClub(this,'PW')">PW</div>
+        <div class="pill" onclick="pickModalClub(this,'GW')">GW</div>
+        <div class="pill" onclick="pickModalClub(this,'50')">50</div>
+        <div class="pill" onclick="pickModalClub(this,'52')">52</div>
+        <div class="pill" onclick="pickModalClub(this,'54')">54</div>
+        <div class="pill" onclick="pickModalClub(this,'56')">56</div>
+        <div class="pill" onclick="pickModalClub(this,'58')">58</div>
+        <div class="pill" onclick="pickModalClub(this,'60')">60</div>
+        <div class="pill" onclick="pickModalClub(this,'H1')">H1</div>
+        <div class="pill" onclick="pickModalClub(this,'H2')">H2</div>
+        <div class="pill" onclick="pickModalClub(this,'F3')">F3</div>
+        <div class="pill" onclick="pickModalClub(this,'F5')">F5</div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Swing length</div>
+      <div class="pill-row">
+        <div class="pill" onclick="pickModalSwing(this,'7 o\'clock')">7</div>
+        <div class="pill" onclick="pickModalSwing(this,'8 o\'clock')">8</div>
+        <div class="pill" onclick="pickModalSwing(this,'9 o\'clock')">9</div>
+        <div class="pill" onclick="pickModalSwing(this,'10 o\'clock')">10</div>
+        <div class="pill" onclick="pickModalSwing(this,'11 o\'clock')">11</div>
+        <div class="pill selected" onclick="pickModalSwing(this,'12 o\'clock')">12</div>
+      </div>
+      <div class="swing-clock-note">o'clock — (7 = short, 12 = full)</div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Ball position <span class="field-optional">optional</span></div>
+      <div class="pill-row">
+        <div class="pill" onclick="pickModalField(this,'ballPos','Back')">Back</div>
+        <div class="pill selected" onclick="pickModalField(this,'ballPos','Center')">Center</div>
+        <div class="pill" onclick="pickModalField(this,'ballPos','Forward')">Forward</div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Weight (lead / trail) <span class="field-optional">optional</span></div>
+      <div class="pill-row">
+        <div class="pill" onclick="pickModalField(this,'weight','40/60')">40/60</div>
+        <div class="pill selected" onclick="pickModalField(this,'weight','50/50')">50/50</div>
+        <div class="pill" onclick="pickModalField(this,'weight','60/40')">60/40</div>
+        <div class="pill" onclick="pickModalField(this,'weight','70/30')">70/30</div>
+        <div class="pill" onclick="pickModalField(this,'weight','80/20')">80/20</div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Flight <span class="field-optional">optional</span></div>
+      <div class="pill-row">
+        <div class="pill selected" onclick="pickModalField(this,'flight','Normal')">Normal</div>
+        <div class="pill" onclick="pickModalField(this,'flight','High')">High</div>
+        <div class="pill" onclick="pickModalField(this,'flight','Low')">Low</div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <div class="field-label">Notes <span class="field-optional">optional</span></div>
+      <textarea class="notes-textarea" id="modal-notes" placeholder="e.g. Keep it smooth, finish high..." rows="2"></textarea>
+    </div>
+
+    <button class="cta-btn" onclick="saveShot()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F8F4EC" stroke-width="2" stroke-linecap="round"><polyline points="20,6 9,17 4,12"/></svg>
+      Save shot
+    </button>
+  </div>
+
+</div>
+<script>
+// ── CLUB DATA ─────────────────────────────────────────────────────────────
+const clubYardages = {
+  '3i': 196, '4i': 186, '5i': 175, '6i': 163, '7i': 150,
+  '8i': 138, '9i': 126, 'PW': 114,
+  'GW': 104, '50': 98, '52': 92, '54': 86, '56': 80, '58': 74, '60': 68,
+  'H1': 215, 'H2': 200, 'F3': 230, 'F5': 210
+}
+const clubShots = {
+  '3i': 0, '4i': 6, '5i': 9, '6i': 10, '7i': 14,
+  '8i': 28, '9i': 11, 'PW': 22,
+  'GW': 0, '50': 0, '52': 0, '54': 0, '56': 8, '58': 0, '60': 0,
+  'H1': 0, 'H2': 0, 'F3': 0, 'F5': 0
+}
+const clubLabels = {
+  '3i': '3 Iron', '4i': '4 Iron', '5i': '5 Iron', '6i': '6 Iron', '7i': '7 Iron',
+  '8i': '8 Iron', '9i': '9 Iron', 'PW': 'PW',
+  'GW': 'GW', '50': '50°', '52': '52°', '54': '54°', '56': '56°', '58': '58°', '60': '60°',
+  'H1': 'Hybrid 1', 'H2': 'Hybrid 2', 'F3': '3 Wood', 'F5': '5 Wood'
+}
+const clubMissTendency = {
+  '7i': 'right', '8i': 'short', 'PW': 'right', '6i': 'left',
+  '5i': 'right', '9i': 'right', '56': 'short', '4i': 'right'
+  // others: no data yet
+}
+const flightNamesShort = {
+  1:'Straight', 2:'Fade', 3:'Draw', 4:'Draw/Hook', 5:'Fade/Slice',
+  6:'Pull', 7:'Push', 8:'Hook', 9:'Slice'
+}
+
+// ── APP STATE ─────────────────────────────────────────────────────────────
+let pinDist      = 147;
+let selectedClub = null;   // caddy override
+
+// Modal state
+let modalDist    = 150;
+let modalClub    = '7i';
+let modalSwing   = "12 o'clock";
+let modalBallPos = 'Center';
+let modalWeight  = '50/50';
+let modalFlight  = 'Normal';
+
+// Persistent data
+const shotLibrary   = [];
+// Each category: { id, name, items: [{id, text}], builtin: bool }
+let swingThoughts = [
+  { id: 'overall',  name: 'Overall swing', items: [], builtin: true },
+  { id: 'driving',  name: 'Driving',       items: [], builtin: true },
+  { id: 'putting',  name: 'Putting',       items: [], builtin: true },
+  { id: 'grip',     name: 'Grip',          items: [], builtin: true }
+];
+
+// ── PERSISTENCE (localStorage) ────────────────────────────────────────────
+const STORAGE_KEY = 'pocketCaddy.v1';
+
+function saveToStorage() {
+  try {
+    const payload = {
+      shotLibrary,
+      swingThoughts,
+      clubYardages,
+      clubShots,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    console.warn('Save failed:', e);
+  }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.shotLibrary)) {
+      shotLibrary.length = 0;
+      data.shotLibrary.forEach(s => shotLibrary.push(s));
+    }
+    if (Array.isArray(data.swingThoughts)) {
+      // Merge: ensure all built-in categories exist (in case we add new ones later)
+      const builtinIds = ['overall', 'driving', 'putting', 'grip'];
+      const builtinDefs = {
+        overall: 'Overall swing',
+        driving: 'Driving',
+        putting: 'Putting',
+        grip:    'Grip'
+      };
+      const loaded = data.swingThoughts;
+      // Ensure each built-in exists
+      builtinIds.forEach(id => {
+        if (!loaded.find(c => c.id === id)) {
+          loaded.unshift({ id, name: builtinDefs[id], items: [], builtin: true });
+        }
+      });
+      swingThoughts.length = 0;
+      loaded.forEach(c => swingThoughts.push(c));
+    }
+    // Optional: restore club yardages if user has tweaked them in future versions
+  } catch (e) {
+    console.warn('Load failed:', e);
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showTab(screenId, tabId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ── CADDY ─────────────────────────────────────────────────────────────────
+function adjustDist(d) {
+  pinDist = Math.max(10, Math.min(350, pinDist + d));
+  document.getElementById('caddy-distance').textContent = pinDist;
+}
+
+function confirmDist() {
+  selectedClub = bestClubFor(pinDist);
+  document.getElementById('caddy-step-1').style.display = 'none';
+  document.getElementById('caddy-step-2').style.display = '';
+  // renderCaddyShotOptions owns the full card —
+  // it shows saved shots (Mode A) OR falls back to generic rec (Mode B)
+  renderCaddyShotOptions();
+  renderCaddyOverallThoughts();
+  document.getElementById('caddy-add-dist-label').textContent = pinDist;
+  // Pre-select the recommended club in the override picker
+  document.querySelectorAll('#caddy-club-picker .pill').forEach(p => {
+    p.classList.toggle('selected', p.getAttribute('onclick').includes("'" + selectedClub + "'"));
+  });
+  document.getElementById('override-yardage-note').textContent =
+    clubLabels[selectedClub] + ' typical carry: ' + clubYardages[selectedClub] + ' yds';
+}
+
+function bestClubFor(dist) {
+  let best = null, bestDiff = Infinity;
+  for (const [club, yd] of Object.entries(clubYardages)) {
+    const diff = Math.abs(yd - dist);
+    if (diff < bestDiff) { bestDiff = diff; best = club; }
+  }
+  return best;
+}
+
+function confidenceLevel(club) {
+  const shots = clubShots[club] || 0;
+  if (shots >= 30) return 'High confidence';
+  if (shots >= 10) return 'Good confidence';
+  if (shots >= 1)  return 'Low confidence';
+  return 'Baseline (no logged shots)';
+}
+
+function renderRec() {
+  const yd   = clubYardages[selectedClub];
+  const diff = yd - pinDist;
+  const diffStr = diff === 0 ? 'exact' : (diff > 0 ? diff + ' over' : Math.abs(diff) + ' under');
+  document.getElementById('rec-club-name').textContent   = clubLabels[selectedClub];
+  document.getElementById('rec-club-detail').textContent = 'Typical carry: ' + yd + ' yds · ' + diffStr;
+  document.getElementById('rec-conf-pill').textContent   = confidenceLevel(selectedClub);
+  document.getElementById('caddy-add-dist-label').textContent = pinDist;
+  const miss = clubMissTendency[selectedClub];
+  const warn = document.getElementById('rec-warning');
+  if (miss) {
+    document.getElementById('rec-warning-text').textContent =
+      'Tends to miss ' + miss + ' — aim ' + (miss==='right'?'left':miss==='left'?'right':miss==='short'?'long':'short');
+    warn.style.display = 'flex';
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+function pickCaddyClub(el, club) {
+  document.querySelectorAll('#caddy-club-picker .pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedClub = club;
+  renderRec();
+  renderCaddyShotOptions();
+  document.getElementById('override-yardage-note').textContent =
+    clubLabels[club] + ' typical carry: ' + clubYardages[club] + ' yds';
+}
+
+function resetCaddy() {
+  document.getElementById('caddy-step-1').style.display = '';
+  document.getElementById('caddy-step-2').style.display = 'none';
+}
+
+function renderCaddyShotOptions() {
+  const matches = shotLibrary.filter(s => Math.abs(s.distance - pinDist) <= 5);
+  matches.sort((a,b) => Math.abs(a.distance-pinDist) - Math.abs(b.distance-pinDist));
+
+  const shotsMode   = document.getElementById('caddy-shots-mode');
+  const genericMode = document.getElementById('caddy-generic-mode');
+
+  if (matches.length) {
+    // MODE A: we have saved shots — lead with them
+    shotsMode.style.display   = '';
+    genericMode.style.display = 'none';
+
+    document.getElementById('shots-dist-label').textContent = pinDist;
+
+    const list = document.getElementById('caddy-shot-list');
+    list.innerHTML = matches.map(s => {
+      const distNote = s.distance !== pinDist ? s.distance + ' yds' : '';
+      const tags = [];
+      if (s.ballPos) tags.push(s.ballPos);
+      if (s.weight)  tags.push(s.weight);
+      if (s.flight)  tags.push(s.flight);
+      const tagHtml   = tags.map(t => '<span class="csr-tag">' + t + '</span>').join('');
+      const notesHtml = s.notes ? '<div class="csr-notes">' + escHtml(s.notes) + '</div>' : '';
+      const distHtml  = distNote ? '<span class="csr-dist-note">' + distNote + '</span>' : '';
+      return '<div class="caddy-shot-row">' +
+        '<span class="csr-club">' + clubLabels[s.club] + '</span>' +
+        '<div class="csr-right">' +
+          '<span class="csr-swing">' + s.swing + '</span>' +
+          '<div class="csr-tags">' + tagHtml + '</div>' +
+          notesHtml +
+        '</div>' +
+        distHtml +
+      '</div>';
+    }).join('');
+
+    // Still show the generic rec as a small fallback line
+    const recClub = bestClubFor(pinDist);
+    const diff = clubYardages[recClub] - pinDist;
+    const diffStr = diff === 0 ? 'exact' : (diff > 0 ? diff + ' over' : Math.abs(diff) + ' under');
+    document.getElementById('caddy-fallback-rec').textContent =
+      'Baseline: ' + clubLabels[recClub] + ' (' + clubYardages[recClub] + ' yds · ' + diffStr + ')';
+
+  } else {
+    // MODE B: no saved shots — show generic recommendation
+    shotsMode.style.display   = 'none';
+    genericMode.style.display = '';
+    renderRec();
+  }
+}
+
+function renderCaddyOverallThoughts() {
+  const card = document.getElementById('caddy-overall-thoughts');
+  const list = document.getElementById('caddy-overall-list');
+  const overall = findCategory('overall');
+  if (!overall || !overall.items.length) { card.style.display='none'; return; }
+  card.style.display = '';
+  list.innerHTML = overall.items.map(t =>
+    '<div class="context-thought-item"><span class="ct-dot"></span>' + escHtml(t.text) + '</div>'
+  ).join('');
+}
+
+// ── RANGE ─────────────────────────────────────────────────────────────────
+// ── ADD SHOT MODAL ────────────────────────────────────────────────────────
+function openAddShot(dist) {
+  modalDist    = dist || 150;
+  modalClub    = '7i';
+  modalSwing   = "12 o'clock";
+  modalBallPos = 'Center';
+  modalWeight  = '50/50';
+  modalFlight  = 'Normal';
+  document.getElementById('modal-dist').textContent = modalDist;
+  // Reset all pills in modal
+  const modal = document.getElementById('add-shot-modal');
+  modal.querySelectorAll('.modal-field').forEach(field => {
+    field.querySelectorAll('.pill').forEach(p => {
+      const oc = p.getAttribute('onclick') || '';
+      // Select defaults
+      const isDefault =
+        oc.includes("'7i'") ||
+        oc.includes("12 o") ||
+        oc.includes("'Center'") ||
+        oc.includes("'50/50'") ||
+        oc.includes("'Normal'");
+      p.classList.toggle('selected', isDefault);
+    });
+  });
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('modal-bg').classList.add('open');
+  document.getElementById('add-shot-modal').classList.add('open');
+}
+
+function closeAddShot() {
+  document.getElementById('modal-bg').classList.remove('open');
+  document.getElementById('add-shot-modal').classList.remove('open');
+}
+
+function adjustModalDist(d) {
+  modalDist = Math.max(10, Math.min(350, modalDist + d));
+  document.getElementById('modal-dist').textContent = modalDist;
+}
+
+function pickModalClub(el, club) {
+  el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  modalClub = club;
+}
+
+function pickModalSwing(el, val) {
+  el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  modalSwing = val;
+}
+
+function pickModalField(el, key, val) {
+  el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  if      (key==='ballPos') modalBallPos = val;
+  else if (key==='weight')  modalWeight  = val;
+  else if (key==='flight')  modalFlight  = val;
+}
+
+function saveShot() {
+  shotLibrary.push({
+    id: Date.now(),
+    distance: modalDist,
+    club: modalClub,
+    swing: modalSwing,
+    ballPos: modalBallPos,
+    weight: modalWeight,
+    flight: modalFlight,
+    notes: document.getElementById('modal-notes').value.trim()
+  });
+  saveToStorage();
+  closeAddShot();
+  renderShotsList();
+  renderCaddyShotOptions();
+}
+
+function deleteShot(id) {
+  const idx = shotLibrary.findIndex(s => s.id === id);
+  if (idx >= 0) shotLibrary.splice(idx, 1);
+  saveToStorage();
+  renderShotsList();
+  renderCaddyShotOptions();
+}
+
+function renderShotsList() {
+  const list = document.getElementById('shots-list');
+  if (!shotLibrary.length) {
+    list.innerHTML = '<div class="shots-empty">No shots saved yet. Add one above, or save shots on the fly from the Caddy or Range screens.</div>';
+    return;
+  }
+  const groups = {};
+  shotLibrary.forEach(s => { if (!groups[s.distance]) groups[s.distance]=[]; groups[s.distance].push(s); });
+  const dists = Object.keys(groups).map(Number).sort((a,b) => b-a);
+  list.innerHTML = '';
+  dists.forEach(dist => {
+    const wrap = document.createElement('div');
+    wrap.className = 'shots-distance-group';
+    const rows = groups[dist].map(s => {
+      const tags = [];
+      if (s.ballPos && s.ballPos !== 'Center') tags.push(s.ballPos.toLowerCase());
+      if (s.weight  && s.weight  !== '50/50')  tags.push(s.weight);
+      if (s.flight  && s.flight  !== 'Normal') tags.push(s.flight);
+      const tagHtml = tags.map(t => '<span class="shot-option-tag">' + t + '</span>').join('');
+      const noteHtml = s.notes ? '<div style="font-size:12px;color:var(--text-dim);margin-top:4px;font-style:italic;">' + escHtml(s.notes) + '</div>' : '';
+      return '<div class="shot-option">' +
+        '<div class="shot-option-main">' +
+          '<span class="shot-option-club">' + clubLabels[s.club] + '</span>' +
+          '<span class="shot-option-swing">' + s.swing + '</span>' +
+          tagHtml +
+          noteHtml +
+        '</div>' +
+        '<button class="shot-option-delete" onclick="deleteShot(' + s.id + ')">×</button>' +
+      '</div>';
+    }).join('');
+    wrap.innerHTML = '<div class="shots-distance-header">' + dist + ' <span>yds</span></div>' + rows;
+    list.appendChild(wrap);
+  });
+}
+
+// ── SWING THOUGHTS ────────────────────────────────────────────────────────
+function findCategory(catId) {
+  return swingThoughts.find(c => c.id === catId);
+}
+
+function addThought(catId) {
+  const input = document.getElementById('thoughts-input-' + catId);
+  const text  = input.value.trim();
+  if (!text) return;
+  const cat = findCategory(catId);
+  if (!cat) return;
+  cat.items.push({ id: Date.now(), text });
+  input.value = '';
+  saveToStorage();
+  renderAllThoughts();
+  renderCaddyOverallThoughts();
+}
+
+function deleteThought(catId, id) {
+  const cat = findCategory(catId);
+  if (!cat) return;
+  const idx = cat.items.findIndex(t => t.id === id);
+  if (idx >= 0) cat.items.splice(idx, 1);
+  saveToStorage();
+  renderAllThoughts();
+  renderCaddyOverallThoughts();
+}
+
+function addCategory() {
+  const input = document.getElementById('new-category-input');
+  const name  = input.value.trim();
+  if (!name) return;
+  // Generate a unique id from the name (e.g. "Bunker shots" → "bunker-shots-<timestamp>")
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now();
+  swingThoughts.push({ id, name, items: [], builtin: false });
+  input.value = '';
+  saveToStorage();
+  renderAllThoughts();
+}
+
+function deleteCategory(catId) {
+  const idx = swingThoughts.findIndex(c => c.id === catId);
+  if (idx < 0) return;
+  if (swingThoughts[idx].builtin) return;  // safety guard
+  if (!confirm('Delete this category and all its thoughts?')) return;
+  swingThoughts.splice(idx, 1);
+  saveToStorage();
+  renderAllThoughts();
+}
+
+function renderAllThoughts() {
+  const container = document.getElementById('thoughts-screen-list');
+  if (!container) return;
+  container.innerHTML = swingThoughts.map(cat => {
+    const itemsHtml = cat.items.map(t =>
+      '<div class="thought-bullet">' +
+        '<span class="thought-dot"></span>' +
+        '<span class="thought-text">' + escHtml(t.text) + '</span>' +
+        '<button class="thought-delete" onclick="deleteThought(\'' + cat.id + '\','  + t.id + ')">×</button>' +
+      '</div>'
+    ).join('');
+    const headerRight = cat.builtin
+      ? '<span class="category-builtin-pill">built-in</span>'
+      : '<button class="category-delete-btn" onclick="deleteCategory(\'' + cat.id + '\')" title="Delete category">×</button>';
+    return '<div class="thoughts-group">' +
+      '<div class="thoughts-group-header-row">' +
+        '<div class="thoughts-group-header">' + escHtml(cat.name) + '</div>' +
+        headerRight +
+      '</div>' +
+      '<div class="thoughts-list">' + itemsHtml + '</div>' +
+      '<div class="thoughts-add-row">' +
+        '<input class="thoughts-input" id="thoughts-input-' + cat.id + '" placeholder="Add a thought..." onkeydown="if(event.key===\'Enter\')addThought(\'' + cat.id + '\')"/>' +
+        '<button class="thoughts-add-btn" onclick="addThought(\'' + cat.id + '\')">Add</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ── INITIALIZE ON PAGE LOAD ───────────────────────────────────────────────
+loadFromStorage();
+renderAllThoughts();
+renderShotsList();
+renderCaddyOverallThoughts();
+</script>
+</body>
+</html>
