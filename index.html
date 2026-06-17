@@ -757,6 +757,63 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
   margin-top: 4px;
 }
 
+
+
+/* ── Backup & Restore card ──────────────────────────── */
+.backup-card {
+  background: var(--ivory-2);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+}
+.backup-title {
+  font-family: 'Recoleta', serif;
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--green-deep);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.backup-sub {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.backup-buttons {
+  display: flex;
+  gap: 8px;
+}
+.backup-btn {
+  flex: 1;
+  background: var(--white);
+  border: 1.5px solid var(--green-mid);
+  color: var(--green-mid);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: 'General Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.backup-btn:active {
+  background: var(--green-pale);
+}
+.backup-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-mid);
+  margin-top: 10px;
+  min-height: 16px;
+}
+.backup-status.error { color: var(--gold); }
+
 </style>
 </head>
 <body>
@@ -902,6 +959,32 @@ html, body { height: 100%; overflow: hidden; background: #0D1F16; }
           <input class="thoughts-input" id="new-category-input" placeholder="e.g. Bunker shots, Chipping..." onkeydown="if(event.key==='Enter')addCategory()"/>
           <button class="thoughts-add-btn" onclick="addCategory()">Create</button>
         </div>
+      </div>
+
+      <!-- Backup & Restore -->
+      <div class="backup-card">
+        <div class="backup-title">Backup & restore</div>
+        <div class="backup-sub">Protect your shots and thoughts. Export saves a file you can keep in iCloud Drive or email to yourself.</div>
+        <div class="backup-buttons">
+          <button class="backup-btn" onclick="exportData()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export
+          </button>
+          <button class="backup-btn" onclick="document.getElementById('import-file').click()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Import
+          </button>
+          <input type="file" id="import-file" accept="application/json,.json" style="display:none;" onchange="importData(event)"/>
+        </div>
+        <div class="backup-status" id="backup-status"></div>
       </div>
     </div>
   </div>
@@ -1480,6 +1563,121 @@ function escHtml(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────
+function exportData() {
+  try {
+    const payload = {
+      version: 1,
+      app: 'PocketCaddy',
+      exportedAt: new Date().toISOString(),
+      shotLibrary,
+      swingThoughts,
+      clubYardages,
+      clubShots
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+
+    // Build filename with today's date
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const filename = `pocket-caddy-backup-${dateStr}.json`;
+
+    // Trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showBackupStatus('Exported ' + filename + ' — save it to iCloud Drive.', false);
+  } catch (e) {
+    showBackupStatus('Export failed: ' + e.message, true);
+  }
+}
+
+function importData(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  // Confirm replace
+  if (!confirm('Importing will REPLACE all your current shots and thoughts with the contents of this file. Continue?')) {
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Sanity check
+      if (!data || data.app !== 'PocketCaddy') {
+        throw new Error('Not a Pocket Caddy backup file');
+      }
+
+      // Replace shot library
+      shotLibrary.length = 0;
+      if (Array.isArray(data.shotLibrary)) {
+        data.shotLibrary.forEach(s => shotLibrary.push(s));
+      }
+
+      // Replace thoughts (ensure built-ins still exist)
+      const builtinDefs = {
+        overall: 'Overall swing',
+        driving: 'Driving',
+        putting: 'Putting',
+        grip:    'Grip'
+      };
+      swingThoughts.length = 0;
+      if (Array.isArray(data.swingThoughts)) {
+        data.swingThoughts.forEach(c => swingThoughts.push(c));
+      }
+      // Make sure each built-in exists
+      Object.keys(builtinDefs).forEach(id => {
+        if (!swingThoughts.find(c => c.id === id)) {
+          swingThoughts.unshift({ id, name: builtinDefs[id], items: [], builtin: true });
+        }
+      });
+
+      // Save everything back to localStorage
+      saveToStorage();
+
+      // Re-render every screen
+      renderShotsList();
+      renderAllThoughts();
+      renderCaddyOverallThoughts();
+      renderCaddyShotOptions();
+
+      const shotCount = shotLibrary.length;
+      const thoughtCount = swingThoughts.reduce((sum, c) => sum + c.items.length, 0);
+      showBackupStatus('Imported ' + shotCount + ' shots and ' + thoughtCount + ' thoughts.', false);
+    } catch (err) {
+      showBackupStatus('Import failed: ' + err.message, true);
+    }
+    event.target.value = '';
+  };
+  reader.onerror = function() {
+    showBackupStatus('Could not read file.', true);
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function showBackupStatus(msg, isError) {
+  const el = document.getElementById('backup-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('error', !!isError);
+  // Clear after 6 seconds
+  setTimeout(() => { el.textContent = ''; el.classList.remove('error'); }, 6000);
 }
 
 // ── INITIALIZE ON PAGE LOAD ───────────────────────────────────────────────
